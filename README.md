@@ -37,10 +37,10 @@ This script controls a **Philips Hue light** to indicate whether a virtual meeti
 2. Find the **ID of the light** you want to control.
 
 ### 4️⃣ Run the Script
-Save the script as `hue-meeting.sh`, make it executable, and run it:
+Save the script as `teams_hue.sh`, make it executable, and run it:
 ```sh
-chmod +x hue-meeting.sh
-./hue-meeting.sh
+chmod +x teams_hue.sh
+./teams_hue.sh
 ```
 
 ---
@@ -68,7 +68,7 @@ To run the script automatically in the background on macOS, follow these steps:
        <key>ProgramArguments</key>
        <array>
            <string>/bin/bash</string>
-           <string>/path/to/hue-meeting.sh</string>
+           <string>/path/to/teams_hue.sh</string>
        </array>
        <key>RunAtLoad</key>
        <true/>
@@ -77,7 +77,7 @@ To run the script automatically in the background on macOS, follow these steps:
    </dict>
    </plist>
    ```
-   *(Replace `/path/to/hue-meeting.sh` with the actual path to your script.)*
+   *(Replace `/path/to/teams_hue.sh` with the actual path to your script.)*
 
 ### 2️⃣ Load the LaunchAgent
 Run the following command to load and start the script automatically:
