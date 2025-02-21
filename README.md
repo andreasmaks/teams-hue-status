@@ -1,74 +1,96 @@
-# Hue Meeting Light Script
+# Teams Hue Status
 
 ## 📌 Description
-This script controls a **Philips Hue light** to indicate whether a virtual meeting is active. If a conference call is detected (e.g., in **Microsoft Teams**), the light turns **red**. When no meeting is active, the light **turns off**.
+This script controls a **Philips Hue light** to indicate whether a **Microsoft Teams meeting** is active. It monitors the **CPU usage** of the Teams process to determine meeting activity:
+- If **CPU usage is high** (indicating an active meeting), the **Hue light turns red**.
+- If **CPU usage is low** (indicating no meeting), the **Hue light turns off**.
 
 ## 🚀 Features
-- **Automatic meeting detection** based on **microphone activity**.
-- Reads **microphone status on macOS** using:
-  ```sh
-  ioreg -c "AppleHDAEngineInput" | grep "IOAudioEngine"
-  ```
-- Controls a **Philips Hue light** via the Hue Bridge API.
-- **Automatic color and brightness adjustment**.
-- **Easy setup** with just a few configuration steps.
+- **Detects active Microsoft Teams meetings** based on CPU usage.
+- **Automatically controls a Philips Hue light** via the Hue API.
+- **Runs in the background** and continuously monitors Teams activity.
+- **Optimized polling** to minimize system impact.
+
+---
 
 ## 🛠 Setup & Usage
 
-### 1️⃣ Find the Hue Bridge IP Address
-1. Open the **Philips Hue app** on your smartphone.
-2. Go to **Settings → Hue Bridges** and tap on your bridge.
-3. Find the **IP address** under network settings.
+### 1️⃣ Configure the Hue Bridge
+Before running the script, you need to configure your **Hue Bridge**.
 
-### 2️⃣ Generate a Hue API Username
-1. Open a web browser and go to:
-   `http://<HUE_BRIDGE_IP>/debug/clip.html`
-2. In the **URL** field, enter: `/api`
-3. In the **Message Body** field, paste the following JSON data:
-   ```json
-   {"devicetype":"my_hue_app"}
-   ```
-4. **Press the button** on your Hue Bridge, then click **POST**.
-5. Copy the generated **username** and use it in the script.
+1. **Find the Hue Bridge IP Address**
+   - Open the **Philips Hue app** on your smartphone.
+   - Go to **Settings → Hue Bridges** and note the **IP address**.
 
-### 3️⃣ Find the Light ID
-1. Open a web browser and go to:
-   `http://<HUE_BRIDGE_IP>/api/<USERNAME>/lights`
-2. Find the **ID of the light** you want to control.
+2. **Generate a Hue API Username**
+   - Open a web browser and go to:
+     `http://<HUE_BRIDGE_IP>/debug/clip.html`
+   - In the **URL** field, enter: `/api`
+   - In the **Message Body** field, paste:
+     ```json
+     {"devicetype":"my_hue_app"}
+     ```
+   - **Press the button** on your Hue Bridge, then click **POST**.
+   - Copy the generated **username** and use it in the script.
 
-### 4️⃣ Run the Script
-Save the script as `teams_hue.sh`, make it executable, and run it:
+3. **Find the Light ID**
+   - Open a web browser and go to:
+     `http://<HUE_BRIDGE_IP>/api/<USERNAME>/lights`
+   - Identify the **ID** of the light you want to control.
+
+---
+
+### 2️⃣ Edit the Script
+Open `teams_hue.sh` and update the following variables:
+
+```sh
+HUE_BRIDGE_IP="YOUR_HUE_BRIDGE_IP"
+USERNAME="YOUR_HUE_USERNAME"
+LIGHT_ID="YOUR_LIGHT_ID"
+```
+
+---
+
+### 3️⃣ Run the Script
+Make the script executable and start it:
+
 ```sh
 chmod +x teams_hue.sh
 ./teams_hue.sh
 ```
 
+To run the script **in the background**, use:
+
+```sh
+nohup ./teams_hue.sh > /dev/null 2>&1 &
+```
+
 ---
 
-## 🔄 Auto-start on macOS with launchAgents
-To run the script automatically in the background on macOS, follow these steps:
+## 🔄 Auto-start on macOS
+To run the script **automatically at startup**, you can use a macOS LaunchAgent.
 
 ### 1️⃣ Create a LaunchAgent
-1. Open a terminal and create the LaunchAgent directory (if it doesn't exist):
+1. Open a terminal and create the LaunchAgents directory:
    ```sh
    mkdir -p ~/Library/LaunchAgents
    ```
 2. Create a new plist file:
    ```sh
-   nano ~/Library/LaunchAgents/com.meetinglight.hue.plist
+   nano ~/Library/LaunchAgents/com.teams.hue.plist
    ```
-3. Add the following content to the file:
+3. Add the following content (replace `PATH_TO_SCRIPT`):
    ```xml
    <?xml version="1.0" encoding="UTF-8"?>
    <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
    <plist version="1.0">
    <dict>
        <key>Label</key>
-       <string>com.meetinglight.hue</string>
+       <string>com.teams.hue</string>
        <key>ProgramArguments</key>
        <array>
            <string>/bin/bash</string>
-           <string>/path/to/teams_hue.sh</string>
+           <string>PATH_TO_SCRIPT/teams_hue.sh</string>
        </array>
        <key>RunAtLoad</key>
        <true/>
@@ -77,34 +99,22 @@ To run the script automatically in the background on macOS, follow these steps:
    </dict>
    </plist>
    ```
-   *(Replace `/path/to/teams_hue.sh` with the actual path to your script.)*
-
-### 2️⃣ Load the LaunchAgent
-Run the following command to load and start the script automatically:
-```sh
-launchctl load ~/Library/LaunchAgents/com.meetinglight.hue.plist
-```
-
-### 3️⃣ Unload the LaunchAgent (if needed)
-If you want to stop the script from running automatically, unload the LaunchAgent:
-```sh
-launchctl unload ~/Library/LaunchAgents/com.meetinglight.hue.plist
-```
+4. Save the file and load the LaunchAgent:
+   ```sh
+   launchctl load ~/Library/LaunchAgents/com.teams.hue.plist
+   ```
 
 ---
 
 ## 🛠 Requirements
-- **macOS / Linux** with Bash
-- **Philips Hue Bridge & Lights**
-- **Microsoft Teams** or other meeting software using microphone activity
-- **macOS microphone access**, detected via:
-  ```sh
-  ioreg -c "AppleHDAEngineInput" | grep "IOAudioEngine"
-  ```
+- **macOS**
+- **Philips Hue Bridge & Light**
+- **Microsoft Teams** installed
+- **Bash & curl** (pre-installed on macOS)
 
 ## 🐟 License
-This project is licensed under the **MIT License**. Free to use and modify.
+This project is licensed under the **MIT License**.
 
 ---
 
-Now your script will run **automatically in the background** whenever you log in to your macOS system. 🚀 Let me know if you need any modifications!
+This script ensures that your Hue light reflects your Teams meeting status **automatically**. 🚀 Let me know if you need any modifications!

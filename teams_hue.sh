@@ -1,9 +1,9 @@
 #!/bin/bash
 
 # Hue Bridge Configuration
-HUE_BRIDGE_IP="your_hue_bridge_ip"
-USERNAME="your_hue_username"
-LIGHT_ID="your_light_id"
+HUE_BRIDGE_IP="<HUE_BRIDGE_IP>"  # Replace with your Hue Bridge IP
+USERNAME="<USERNAME>"  # Replace with your Hue API username
+LIGHT_ID="<LIGHT_ID>"  # Replace with your Hue light ID
 
 # Function to control the Hue light
 set_hue_light() {
@@ -13,35 +13,39 @@ set_hue_light() {
     if [ "$STATE" == "off" ]; then
         curl -s -X PUT "$URL" -d '{"on":false}' > /dev/null
     else
-        curl -s -X PUT "$URL" -d '{"on":true, "hue":0, "sat":254, "bri":64}' > /dev/null  # 25% brightness
+        curl -s -X PUT "$URL" -d '{"on":true, "hue":0, "sat":254, "bri":64}' > /dev/null  # Set brightness to 25%
     fi
 }
 
-# Checks if the "retain" value increases (Microphone query for Teams)
-is_meeting_active() {
-    RETAIN_VALUES=$(ioreg -c "AppleHDAEngineInput" | grep "IOAudioEngineUserClient" | grep -o "retain [0-9]*" | awk '{print $2}')
-
-    for VALUE in $RETAIN_VALUES; do
-        if [ "$VALUE" -gt 6 ]; then
-            return 0  # Meeting active
-        fi
-    done
-    return 1  # No meeting
+# Function to get the total CPU usage of Microsoft Teams
+get_teams_cpu() {
+    ps -Ao %cpu,comm | grep "MSTeams" | awk '{sum+=$1} END {print sum+0}' | tr ',' '.'
 }
 
-# Loop to check status continuously
+# Initialize CPU history with three values
+CPU_HISTORY=(0 0 0)
 LAST_STATE="off"
 
 while true; do
-    if is_meeting_active; then
+    # Get the current CPU usage
+    CPU_USAGE=$(get_teams_cpu)
+
+    # Update the CPU history (keep the last 3 values)
+    CPU_HISTORY=("${CPU_HISTORY[@]:1}" "$CPU_USAGE")
+
+    # Calculate the average CPU usage
+    CPU_AVG=$(echo "(${CPU_HISTORY[0]} + ${CPU_HISTORY[1]} + ${CPU_HISTORY[2]}) / 3" | bc -l)
+
+    # Detect an active meeting (average CPU above 12%)
+    if (( $(echo "$CPU_AVG > 12" | bc -l) )); then
         if [ "$LAST_STATE" != "on" ]; then
-            echo "📞 Meeting detected - Setting Hue to red"
+            echo "📞 Meeting detected (Avg CPU: $CPU_AVG%) - Setting Hue to red"
             set_hue_light "on"
             LAST_STATE="on"
         fi
     else
         if [ "$LAST_STATE" != "off" ]; then
-            echo "📞 No meeting - Turning off Hue"
+            echo "📞 No meeting (Avg CPU: $CPU_AVG%) - Turning off Hue"
             set_hue_light "off"
             LAST_STATE="off"
         fi
